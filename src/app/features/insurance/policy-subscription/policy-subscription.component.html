@@ -212,7 +212,7 @@
           @if (policyForm.get('confermaPin')?.errors?.['required'] && policyForm.get('confermaPin')?.touched) {
             <span class="error">Conferma PIN obbligatoria</span>
           }
-          @if (policyForm.get('confermaPin')?.touched && policyForm.get('confermaPin')?.errors?.['pinMismatch']) {
+          @if (policyForm.get('confermaPin')?.touched && policyForm.errors?.['pinMismatch']) {
             <span class="error">I PIN non coincidono</span>
           }
         </div>
