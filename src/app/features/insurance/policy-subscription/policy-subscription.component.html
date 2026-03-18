@@ -119,7 +119,7 @@
 
         <!-- Beneficiario cards — iterates over beneficiariControls -->
         <div formArrayName="beneficiari">
-          @for (beneficiario of beneficiariControls; track $index) {
+          @for (beneficiario of beneficiariArray.controls; track $index) {
             <div class="beneficiario-card" [formGroupName]="$index">
               <h4>Beneficiario {{ $index + 1 }}</h4>
 

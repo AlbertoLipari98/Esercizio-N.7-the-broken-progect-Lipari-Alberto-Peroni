@@ -91,6 +91,7 @@ export class PolicySubscriptionComponent implements OnInit {
 
   addBeneficiario(): void {
     this.beneficiariArray.push(this.createBeneficiario());
+    
   }
 
   removeBeneficiario(index: number): void {
