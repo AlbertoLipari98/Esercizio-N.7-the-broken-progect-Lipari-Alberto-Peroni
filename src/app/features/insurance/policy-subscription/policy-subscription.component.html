@@ -1,0 +1,234 @@
+<div class="wizard-container">
+
+  <!-- ============================
+       Step Indicator
+       ============================ -->
+  <div class="steps-indicator">
+    <div class="step-tab" [class.active]="currentStep() === 1" [class.completed]="currentStep() > 1">
+      1. Dati Personali
+    </div>
+    <div class="step-tab" [class.active]="currentStep() === 2" [class.completed]="currentStep() > 2">
+      2. Beneficiari
+    </div>
+    <div class="step-tab" [class.active]="currentStep() === 3">
+      3. PIN
+    </div>
+  </div>
+
+  <!-- ============================
+       Reactive Form wrapper
+       ============================ -->
+  <form [formGroup]="policyForm" (ngSubmit)="onSubmit()">
+
+    <!-- ==========================================
+         STEP 1 — Dati Personali
+         ========================================== -->
+    @if (currentStep() === 1) {
+      <div class="step">
+        <h2>Dati Personali</h2>
+
+        <!-- Nome -->
+        <div class="field">
+          <label for="nome">Nome *</label>
+          <input id="nome" type="text" formControlName="nome" placeholder="Es. Mario">
+          @if (policyForm.get('nome')?.invalid && policyForm.get('nome')?.touched) {
+            <span class="error">Nome obbligatorio (minimo 2 caratteri)</span>
+          }
+        </div>
+
+        <!-- Cognome -->
+        <div class="field">
+          <label for="cognome">Cognome *</label>
+          <input id="cognome" type="text" formControlName="cognome" placeholder="Es. Rossi">
+          @if (policyForm.get('cognome')?.invalid && policyForm.get('cognome')?.touched) {
+            <span class="error">Cognome obbligatorio (minimo 2 caratteri)</span>
+          }
+        </div>
+
+        <!-- Data di Nascita -->
+        <div class="field">
+          <label for="dataNascita">Data di Nascita *</label>
+          <input id="dataNascita" type="date" formControlName="dataNascita">
+          @if (policyForm.get('dataNascita')?.errors?.['required'] && policyForm.get('dataNascita')?.touched) {
+            <span class="error">Data di nascita obbligatoria</span>
+          }
+          @if (policyForm.get('dataNascita')?.errors?.['etaMinima'] && policyForm.get('dataNascita')?.touched) {
+            <span class="error">
+              Devi avere almeno 18 anni
+              (età attuale: {{ policyForm.get('dataNascita')?.errors?.['etaMinima'].actual }} anni)
+            </span>
+          }
+        </div>
+
+        <!-- Codice Fiscale (async validator) -->
+        <div class="field">
+          <label for="codiceFiscale">Codice Fiscale *</label>
+          <input
+            id="codiceFiscale"
+            type="text"
+            formControlName="codiceFiscale"
+            maxlength="16"
+            style="text-transform: uppercase"
+            placeholder="Es. RSSMRA85M01H501Z"
+          >
+          @if (isStep1Pending()) {
+            <span class="info">
+              <span class="spinner"></span>Verifica in corso...
+            </span>
+          }
+          @if (policyForm.get('codiceFiscale')?.errors?.['required'] && policyForm.get('codiceFiscale')?.touched) {
+            <span class="error">Codice fiscale obbligatorio</span>
+          }
+          @if (policyForm.get('codiceFiscale')?.errors?.['minlength'] && policyForm.get('codiceFiscale')?.touched) {
+            <span class="error">Il codice fiscale deve essere di 16 caratteri</span>
+          }
+          @if (policyForm.get('codiceFiscale')?.errors?.['codiceFiscaleInvalid'] && policyForm.get('codiceFiscale')?.touched) {
+            <span class="error">
+              {{ policyForm.get('codiceFiscale')?.errors?.['codiceFiscaleInvalid'].message }}
+            </span>
+          }
+        </div>
+
+        <div class="actions">
+          <button
+            type="submit"
+            class="btn-primary"
+            [disabled]="isStep1Pending()"
+            
+          >
+            Avanti →
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ==========================================
+         STEP 2 — Beneficiari
+         ========================================== -->
+    @if (currentStep() === 2) {
+      <div class="step">
+        <h2>Beneficiari della Polizza</h2>
+
+        <!-- Totale percentuale warning -->
+        @if (!isSomma100()) {
+          <div class="warning">
+            ⚠ La somma delle percentuali deve essere esattamente 100%.
+            Totale attuale: <strong>{{ getTotalePercentuale() }}%</strong>
+          </div>
+        }
+
+        <!-- Beneficiario cards — iterates over beneficiariControls -->
+        <div formArrayName="beneficiari">
+          @for (beneficiario of beneficiariControls; track $index) {
+            <div class="beneficiario-card" [formGroupName]="$index">
+              <h4>Beneficiario {{ $index + 1 }}</h4>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Nome *</label>
+                  <input type="text" formControlName="nome" placeholder="Nome">
+                  @if (beneficiario.get('nome')?.invalid && beneficiario.get('nome')?.touched) {
+                    <span class="error">Nome obbligatorio</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label>Cognome *</label>
+                  <input type="text" formControlName="cognome" placeholder="Cognome">
+                  @if (beneficiario.get('cognome')?.invalid && beneficiario.get('cognome')?.touched) {
+                    <span class="error">Cognome obbligatorio</span>
+                  }
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label>Codice Fiscale *</label>
+                  <input type="text" formControlName="cf" maxlength="16" placeholder="16 caratteri">
+                  @if (beneficiario.get('cf')?.invalid && beneficiario.get('cf')?.touched) {
+                    <span class="error">CF obbligatorio (16 caratteri)</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label>Percentuale % *</label>
+                  <input type="number" formControlName="percentuale" min="1" max="100">
+                  @if (beneficiario.get('percentuale')?.invalid && beneficiario.get('percentuale')?.touched) {
+                    <span class="error">Valore tra 1 e 100</span>
+                  }
+                </div>
+              </div>
+
+              @if (beneficiariArray.length > 1) {
+                <button type="button" class="btn-remove" (click)="removeBeneficiario($index)">
+                  Rimuovi
+                </button>
+              }
+            </div>
+          }
+        </div>
+
+        <button type="button" class="btn-add" (click)="addBeneficiario()">
+          + Aggiungi Beneficiario
+        </button>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" (click)="prevStep()">← Indietro</button>
+          <button
+            type="button"
+            class="btn-primary"
+            (click)="nextStep()"
+            [disabled]="!isStep2Valid()"
+          >
+            Avanti →
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ==========================================
+         STEP 3 — PIN
+         ========================================== -->
+    @if (currentStep() === 3) {
+      <div class="step">
+        <h2>PIN di Sicurezza</h2>
+
+        <!-- PIN -->
+        <div class="field">
+          <label for="pin">PIN (4–6 cifre) *</label>
+          <input id="pin" type="password" formControlName="pin" maxlength="6" placeholder="••••">
+          @if (policyForm.get('pin')?.errors?.['required'] && policyForm.get('pin')?.touched) {
+            <span class="error">PIN obbligatorio</span>
+          }
+          @if (policyForm.get('pin')?.errors?.['minlength'] && policyForm.get('pin')?.touched) {
+            <span class="error">Il PIN deve avere almeno 4 cifre</span>
+          }
+        </div>
+
+        <!-- Conferma PIN -->
+        <div class="field">
+          <label for="confermaPin">Conferma PIN *</label>
+          <input id="confermaPin" type="password" formControlName="confermaPin" maxlength="6" placeholder="••••">
+          @if (policyForm.get('confermaPin')?.errors?.['required'] && policyForm.get('confermaPin')?.touched) {
+            <span class="error">Conferma PIN obbligatoria</span>
+          }
+          @if (policyForm.get('confermaPin')?.touched && policyForm.get('confermaPin')?.errors?.['pinMismatch']) {
+            <span class="error">I PIN non coincidono</span>
+          }
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-secondary" (click)="prevStep()">← Indietro</button>
+          <button
+            type="submit"
+            class="btn-submit"
+            [disabled]="policyForm.invalid || isStep1Pending()"
+          >
+            Sottoscrivi Polizza
+          </button>
+        </div>
+      </div>
+    }
+
+  </form>
+</div>
